@@ -1,0 +1,13 @@
+build
+dist
+node_modules
+package-lock.json
+.env
+media
+
+# Build output and local state
+.next
+*.tsbuildinfo
+.env.*
+!.env.example
+coverage
