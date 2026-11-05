@@ -19,4 +19,8 @@ const nextConfig = {
   },
 }
 
-export default withPayload(nextConfig)
+// eve needs Node 24 and an AI model, so it stays off until EVE_ENABLED=true.
+const withAgents =
+  process.env.EVE_ENABLED === 'true' ? (await import('eve/next')).withEve : (config) => config
+
+export default withAgents(withPayload(nextConfig))

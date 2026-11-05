@@ -11,3 +11,7 @@ media
 .env.*
 !.env.example
 coverage
+
+# eve build output
+.eve
+.output

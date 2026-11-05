@@ -13,7 +13,7 @@ const RRF_K = 60
  * Vector search always returns its nearest rows, however unrelated. Rows further away than this
  * are dropped, unless full-text search also matched them. Tune with real content and queries.
  */
-const MAX_VECTOR_DISTANCE = Number(process.env.SEARCH_MAX_VECTOR_DISTANCE ?? 0.85)
+const MAX_VECTOR_DISTANCE = Number(process.env.SEARCH_MAX_VECTOR_DISTANCE || 0.85)
 
 export type SearchResult = {
   chunkIndex: number

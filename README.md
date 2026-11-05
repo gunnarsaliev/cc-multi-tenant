@@ -99,8 +99,34 @@ For more details on this, see the [CORS](https://payloadcms.com/docs/production/
 
 ## Front-end
 
-The frontend is scaffolded out in this example directory. You can view the code for rendering pages at `/src/app/(app)/[tenant]/[...slug]/page.tsx`. This is a starter template, you may need to adjust the app to better fit your needs.
+The frontend is scaffolded out in this example directory. You can view the code for rendering pages at `/src/app/(app)/tenant-slugs/[tenant]/[...slug]/page.tsx`. This is a starter template, you may need to adjust the app to better fit your needs.
 
 ## Questions
 
 If you have any issues or questions, reach out to us on [Discord](https://discord.com/invite/payload) or start a [GitHub discussion](https://github.com/payloadcms/payload/discussions).
+
+## AI features
+
+Everything works without API keys for development: set `AI_MOCK=true` for offline stand-in models (never active in production). Without keys or the mock, the app runs normally and AI features report that they aren't configured.
+
+The database needs [pgvector](https://github.com/pgvector/pgvector) 0.8 or later. `docker compose up` starts one, or use `brew install pgvector`.
+
+- **Translate:** the button on a blog post fills the locale selected in the admin from another locale, and saves the result as a draft. Publishing still applies to all locales.
+- **Search:** `GET /api/search?tenant=<slug>&q=<text>&locale=<code>` searches published content by meaning and keywords. Publishing queues a job that updates the index. `pnpm search:backfill` indexes everything, for example after first adding keys.
+- **MCP:** `/api/mcp` offers read-only `blog` and `pages`, plus `semanticSearch` and `translatePost`. Create keys under MCP → API Keys. A key acts as its owner, within that user's access. Give each tenant a service user with the `tenant-admin` role.
+- **Assistant:** an [eve](https://eve.dev/docs) agent at `/admin/assistant`, in `agent/`. It needs Node 24, `EVE_ENABLED=true` and `PAYLOAD_MCP_KEYS`. Outside Vercel, it also needs Docker for eve's sandbox.
+
+### Going live
+
+1. Set `AI_GATEWAY_API_KEY` (or use Vercel OIDC when deployed) and `AI_TRANSLATION_MODEL`, chosen from the [Gateway's model list](https://ai-gateway.vercel.sh/v1/models).
+2. Try real en→bg and bg→en translations.
+3. Run `pnpm search:backfill`, then test search with real Bulgarian queries. Adjust `SEARCH_MAX_VECTOR_DISTANCE` if unrelated results appear or good ones go missing.
+4. Create the service users and MCP keys, and set `PAYLOAD_MCP_KEYS`.
+5. Set `EVE_ENABLED=true` and `AI_AGENT_MODEL`, then run `npx eve eval`.
+6. Set `CRON_SECRET`, add rate limiting to `/api/search`, and move `media` to cloud storage, since Vercel's function storage doesn't persist.
+
+### Database and tests
+
+The schema is managed by migrations in every environment. `pnpm dev` applies new ones and keeps your data; `pnpm dev:fresh` wipes and reseeds. After changing a collection, run `pnpm payload migrate:create`.
+
+`pnpm test` runs against a separate database, which must have a name ending in `_test`: run `createdb multi_tenant_test`, or set `TEST_POSTGRES_URL`.

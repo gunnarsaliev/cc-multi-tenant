@@ -29,6 +29,14 @@ const dirname = path.dirname(filename)
 // eslint-disable-next-line no-restricted-exports
 export default buildConfig({
   admin: {
+    components: {
+      views: {
+        assistant: {
+          Component: '@/components/assistant/AssistantView#AssistantView',
+          path: '/assistant',
+        },
+      },
+    },
     user: 'users',
   },
   collections: [Pages, Blog, Media, Users, Tenants],
