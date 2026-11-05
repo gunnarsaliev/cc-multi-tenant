@@ -1,3 +1,4 @@
+import { queueReindexAfterChange, queueReindexAfterDelete } from '@/search/hooks'
 import type { CollectionConfig, TextField } from 'payload'
 
 import { slugField } from 'payload'
@@ -84,6 +85,8 @@ export const Blog: CollectionConfig = {
     }),
   ],
   hooks: {
+    afterChange: [queueReindexAfterChange],
+    afterDelete: [queueReindexAfterDelete],
     beforeValidate: [normalizeSlug],
   },
   indexes: [

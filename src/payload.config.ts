@@ -7,6 +7,9 @@ import sharp from 'sharp'
 import { fileURLToPath } from 'url'
 
 import { Blog } from './collections/Blog'
+import { reindexDocumentTask } from './jobs/reindexDocument'
+import { searchEndpoint } from './search/endpoint'
+import { addContentChunksTable } from './search/schema'
 import { Media } from './collections/Media'
 import { Pages } from './collections/Pages'
 import { Tenants } from './collections/Tenants'
@@ -30,6 +33,7 @@ export default buildConfig({
   //   url: process.env.DATABASE_URL as string,
   // }),
   db: postgresAdapter({
+    afterSchemaInit: [addContentChunksTable],
     migrationDir: path.resolve(dirname, 'migrations'),
     pool: {
       connectionString: process.env.POSTGRES_URL,
@@ -38,6 +42,23 @@ export default buildConfig({
     // drop or rewrite anything it does not recognise, including pgvector columns and indexes.
     push: false,
   }),
+  jobs: {
+    access: {
+      // Logged-in users, or Vercel Cron presenting CRON_SECRET.
+      run: ({ req }) => {
+        if (req.user) {
+          return true
+        }
+
+        const secret = process.env.CRON_SECRET
+
+        return Boolean(secret) && req.headers.get('authorization') === `Bearer ${secret}`
+      },
+    },
+    // Vercel runs jobs through the cron in vercel.json; anywhere else, the server does it.
+    autoRun: process.env.VERCEL ? undefined : [{ cron: '* * * * *', limit: 20, queue: 'default' }],
+    tasks: [reindexDocumentTask],
+  },
   localization: {
     defaultLocale: 'en',
     fallback: true,
@@ -67,6 +88,7 @@ export default buildConfig({
     }
   },
   editor: lexicalEditor({}),
+  endpoints: [searchEndpoint],
   graphQL: {
     schemaOutputFile: path.resolve(dirname, 'generated-schema.graphql'),
   },

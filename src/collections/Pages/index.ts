@@ -1,3 +1,4 @@
+import { queueReindexAfterChange, queueReindexAfterDelete } from '@/search/hooks'
 import type { CollectionConfig } from 'payload'
 
 import { ensureUniqueSlug } from './hooks/ensureUniqueSlug'
@@ -33,4 +34,8 @@ export const Pages: CollectionConfig = {
       index: true,
     },
   ],
+  hooks: {
+    afterChange: [queueReindexAfterChange],
+    afterDelete: [queueReindexAfterDelete],
+  },
 }
