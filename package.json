@@ -7,21 +7,27 @@
   "scripts": {
     "_dev": "cross-env NODE_OPTIONS=--no-deprecation next dev",
     "build": "cross-env NODE_OPTIONS=--no-deprecation next build",
-    "dev": "cross-env NODE_OPTIONS=--no-deprecation && pnpm seed && next dev",
+    "build:prod": "pnpm payload migrate && pnpm build",
+    "dev": "pnpm payload migrate && cross-env NODE_OPTIONS=--no-deprecation next dev",
+    "dev:fresh": "pnpm seed && cross-env NODE_OPTIONS=--no-deprecation next dev",
     "generate:importmap": "cross-env NODE_OPTIONS=--no-deprecation payload generate:importmap",
     "generate:schema": "payload-graphql generate:schema",
     "generate:types": "payload generate:types",
     "payload": "cross-env NODE_OPTIONS=--no-deprecation payload",
     "seed": "npm run payload migrate:fresh",
-    "start": "cross-env NODE_OPTIONS=--no-deprecation next start"
+    "start": "cross-env NODE_OPTIONS=--no-deprecation next start",
+    "test": "vitest run",
+    "test:watch": "vitest"
   },
   "dependencies": {
     "@payloadcms/db-mongodb": "3.92.1",
     "@payloadcms/db-postgres": "3.92.1",
     "@payloadcms/next": "3.92.1",
+    "@payloadcms/plugin-mcp": "3.92.1",
     "@payloadcms/plugin-multi-tenant": "3.92.1",
     "@payloadcms/richtext-lexical": "3.92.1",
     "@payloadcms/ui": "3.92.1",
+    "ai": "7.0.163",
     "cross-env": "^10.1.0",
     "dotenv": "^18.0.9",
     "graphql": "^16.14.2",
@@ -30,18 +36,22 @@
     "qs-esm": "8.0.2",
     "react": "19.3.1",
     "react-dom": "19.3.1",
-    "sharp": "0.35.5"
+    "sharp": "0.35.5",
+    "zod": "4.6.7"
   },
   "devDependencies": {
     "@payloadcms/graphql": "3.92.1",
     "@swc/core": "^1.16.21",
     "@types/node": "24.19.2",
+    "@types/pg": "^8.23.1",
     "@types/react": "19.3.0",
     "@types/react-dom": "19.3.0",
     "eslint": "^9.39.5",
     "eslint-config-next": "16.4.5",
+    "pg": "8.20.0",
     "tsx": "^4.23.15",
-    "typescript": "6.0.3"
+    "typescript": "6.0.3",
+    "vitest": "5.1.0"
   },
   "engines": {
     "node": "^22.23.4 || >=24.22.1"

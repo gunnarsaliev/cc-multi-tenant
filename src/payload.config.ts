@@ -30,9 +30,13 @@ export default buildConfig({
   //   url: process.env.DATABASE_URL as string,
   // }),
   db: postgresAdapter({
+    migrationDir: path.resolve(dirname, 'migrations'),
     pool: {
       connectionString: process.env.POSTGRES_URL,
     },
+    // The schema is managed by migrations in every environment. Dev-mode push would try to
+    // drop or rewrite anything it does not recognise, including pgvector columns and indexes.
+    push: false,
   }),
   localization: {
     defaultLocale: 'en',
@@ -51,7 +55,14 @@ export default buildConfig({
     ],
   },
   onInit: async (args) => {
-    if (process.env.SEED_DB) {
+    if (!process.env.SEED_DB) {
+      return
+    }
+
+    // `pnpm dev` no longer wipes the database, so seed only an empty one.
+    const { totalDocs } = await args.count({ collection: 'tenants' })
+
+    if (totalDocs === 0) {
       await seed(args)
     }
   },

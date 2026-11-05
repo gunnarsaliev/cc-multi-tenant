@@ -4,6 +4,7 @@ import { createAccess } from './access/create'
 import { readAccess } from './access/read'
 import { updateAndDeleteAccess } from './access/updateAndDelete'
 import { externalUsersLogin } from './endpoints/externalUsersLogin'
+import { enforceTenantMembership } from './hooks/enforceTenantMembership'
 import { ensureUniqueUsername } from './hooks/ensureUniqueUsername'
 import { isSuperAdmin } from '@/access/isSuperAdmin'
 import { setCookieBasedOnDomain } from './hooks/setCookieBasedOnDomain'
@@ -23,20 +24,6 @@ const defaultTenantArrayField = tenantsArrayField({
       hasMany: true,
       options: ['tenant-admin', 'tenant-viewer'],
       required: true,
-      access: {
-        update: ({ req }) => {
-          const { user } = req
-          if (!user) {
-            return false
-          }
-
-          if (isSuperAdmin(user)) {
-            return true
-          }
-
-          return true
-        },
-      },
     },
   ],
 })
@@ -113,6 +100,7 @@ const Users: CollectionConfig = {
 
   hooks: {
     afterLogin: [setCookieBasedOnDomain],
+    beforeChange: [enforceTenantMembership],
   },
 }
 
