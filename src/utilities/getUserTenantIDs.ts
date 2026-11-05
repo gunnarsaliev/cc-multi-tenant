@@ -1,4 +1,5 @@
 import type { Tenant, User } from '../payload-types'
+import { type AuthenticatedUser, getAppUser } from '../access/getAppUser'
 import { extractID } from './extractID'
 
 /**
@@ -8,9 +9,11 @@ import { extractID } from './extractID'
  * @param role - Optional role to filter by
  */
 export const getUserTenantIDs = (
-  user: null | User,
+  authenticatedUser: AuthenticatedUser,
   role?: NonNullable<User['tenants']>[number]['roles'][number],
 ): Tenant['id'][] => {
+  const user = getAppUser(authenticatedUser)
+
   if (!user) {
     return []
   }

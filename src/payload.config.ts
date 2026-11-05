@@ -8,13 +8,16 @@ import { fileURLToPath } from 'url'
 
 import { Blog } from './collections/Blog'
 import { reindexDocumentTask } from './jobs/reindexDocument'
+import { semanticSearchTool, translatePostTool } from './mcp/tools'
 import { searchEndpoint } from './search/endpoint'
 import { addContentChunksTable } from './search/schema'
 import { Media } from './collections/Media'
 import { Pages } from './collections/Pages'
 import { Tenants } from './collections/Tenants'
 import Users from './collections/Users'
+import { mcpPlugin } from '@payloadcms/plugin-mcp'
 import { multiTenantPlugin } from '@payloadcms/plugin-multi-tenant'
+import { getAppUser } from './access/getAppUser'
 import { isSuperAdmin } from './access/isSuperAdmin'
 import type { Config } from './payload-types'
 import { getUserTenantIDs } from './utilities/getUserTenantIDs'
@@ -46,7 +49,7 @@ export default buildConfig({
     access: {
       // Logged-in users, or Vercel Cron presenting CRON_SECRET.
       run: ({ req }) => {
-        if (req.user) {
+        if (getAppUser(req.user)) {
           return true
         }
 
@@ -98,6 +101,18 @@ export default buildConfig({
     outputFile: path.resolve(dirname, 'payload-types.ts'),
   },
   plugins: [
+    // Read-only collection access: writes go through the translatePost tool, which only saves drafts.
+    mcpPlugin({
+      collections: {
+        blog: { enabled: { find: true } },
+        pages: { enabled: { find: true } },
+      },
+      mcp: {
+        // Cast because the plugin's own copy of Zod 3 makes comparing the types too deep for tsc.
+        tools: [semanticSearchTool, translatePostTool] as never,
+      },
+      userCollection: 'users',
+    }),
     multiTenantPlugin<Config>({
       collections: {
         blog: {},

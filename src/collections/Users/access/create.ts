@@ -2,11 +2,12 @@ import type { Access } from 'payload'
 
 import type { Tenant, User } from '../../../payload-types'
 
+import { getAppUser } from '../../../access/getAppUser'
 import { isSuperAdmin } from '../../../access/isSuperAdmin'
 import { getUserTenantIDs } from '../../../utilities/getUserTenantIDs'
 
 export const createAccess: Access<User> = ({ req }) => {
-  if (!req.user) {
+  if (!getAppUser(req.user)) {
     return false
   }
 

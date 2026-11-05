@@ -6,6 +6,7 @@ import { updateAndDeleteAccess } from './access/updateAndDelete'
 import { externalUsersLogin } from './endpoints/externalUsersLogin'
 import { enforceTenantMembership } from './hooks/enforceTenantMembership'
 import { ensureUniqueUsername } from './hooks/ensureUniqueUsername'
+import { getAppUser } from '@/access/getAppUser'
 import { isSuperAdmin } from '@/access/isSuperAdmin'
 import { setCookieBasedOnDomain } from './hooks/setCookieBasedOnDomain'
 import { tenantsArrayField } from '@payloadcms/plugin-multi-tenant/fields'
@@ -49,7 +50,7 @@ const Users: CollectionConfig = {
       access: {
         read: () => false, // Hide password field from read access
         update: ({ req, id }) => {
-          const { user } = req
+          const user = getAppUser(req.user)
           if (!user) {
             return false
           }

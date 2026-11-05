@@ -1,11 +1,12 @@
 import type { Access } from 'payload'
 
 import { getUserTenantIDs } from '../../../utilities/getUserTenantIDs'
+import { getAppUser } from '@/access/getAppUser'
 import { isSuperAdmin } from '@/access/isSuperAdmin'
 import { isAccessingSelf } from './isAccessingSelf'
 
 export const updateAndDeleteAccess: Access = ({ req, id }) => {
-  const { user } = req
+  const user = getAppUser(req.user)
 
   if (!user) {
     return false

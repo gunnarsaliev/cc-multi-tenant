@@ -1,11 +1,13 @@
 import type { Access } from 'payload'
 
+import { getAppUser } from '@/access/getAppUser'
+
 /**
  * Anonymous visitors only see published posts. The multi-tenant plugin
  * limits signed-in users to posts in their own tenants.
  */
 export const readAccess: Access = ({ req }) => {
-  if (req.user) {
+  if (getAppUser(req.user)) {
     return true
   }
 
