@@ -17,6 +17,7 @@ export default defineConfig({
   test: {
     env: {
       AI_GATEWAY_API_KEY: '',
+      AI_MOCK: 'true',
       PAYLOAD_SECRET: 'test-secret',
       POSTGRES_URL: testDatabaseURL,
       SEED_DB: '',

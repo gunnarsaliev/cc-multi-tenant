@@ -8,6 +8,7 @@ import {
 } from '@/collections/Pages/access/superAdminOrTenantAdmin'
 import { slugify } from '@/utilities/slugify'
 import { readAccess } from './access/read'
+import { translateEndpoint, translationStatusEndpoint } from './endpoints/translate'
 import { normalizeSlug } from './hooks/normalizeSlug'
 
 export const Blog: CollectionConfig = {
@@ -23,9 +24,15 @@ export const Blog: CollectionConfig = {
     update: superAdminOrTenantAdminAccess,
   },
   admin: {
+    components: {
+      edit: {
+        beforeDocumentControls: ['@/collections/Blog/components/TranslateButton#TranslateButton'],
+      },
+    },
     defaultColumns: ['title', 'slug', '_status', 'updatedAt'],
     useAsTitle: 'title',
   },
+  endpoints: [translationStatusEndpoint, translateEndpoint],
   fields: [
     {
       name: 'title',
