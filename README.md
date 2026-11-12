@@ -12,10 +12,11 @@ To spin up this example locally, follow these steps:
 
 2. `cp .env.example .env` to copy the example environment variables
 
-3. `pnpm dev`, `yarn dev` or `npm run dev` to start the server
+3. `pnpm payload migrate` to create the database schema
+4. `pnpm dev`, `yarn dev` or `npm run dev` to start the server
    - Press `y` when prompted to seed the database
-4. `open http://localhost:3000` to access the home page
-5. `open http://localhost:3000/admin` to access the admin panel
+5. `open http://localhost:3000` to access the home page
+6. `open http://localhost:3000/admin` to access the admin panel
 
 ### Default users
 
@@ -105,15 +106,28 @@ The frontend is scaffolded out in this example directory. You can view the code 
 
 If you have any issues or questions, reach out to us on [Discord](https://discord.com/invite/payload) or start a [GitHub discussion](https://github.com/payloadcms/payload/discussions).
 
+## Cookie consent
+
+Each tenant has one cookie banner and a log of the consents its visitors gave. Tenant sites show the banner themselves and talk to two public endpoints.
+
+- **Banner settings** (`consent-settings`): one per tenant, under Cookie consent in the admin. Texts are per language, and an empty text uses the standard wording. Besides the always-on necessary cookies it can ask about preferences, statistics and marketing, the same four categories Cookiebot uses. Raising **revision** shows the banner again to everyone who already answered.
+- **Consent log** (`consent-logs`): one row per answer or change. Tenant admins and super admins can read it, and nobody can add, edit or delete rows. No IP address is stored.
+- `GET /api/consent/config?tenant=<slug>&locale=<code>` returns the banner settings.
+- `POST /api/consent/log` records a consent. It only accepts browsers on the tenant's `domain` (with or without `www`), so that field must match the site's address. Localhost is accepted outside production. This stops other websites writing to a tenant's log, but a script can fake the header, so add rate limiting before going live.
+
+`examples/consent-banner/CookieBanner.tsx` is a ready-made banner for a tenant's Next.js site, built on [vanilla-cookieconsent](https://cookieconsent.orestbida.com).
+
 ## AI features
 
 Everything works without API keys for development: set `AI_MOCK=true` for offline stand-in models (never active in production). Without keys or the mock, the app runs normally and AI features report that they aren't configured.
 
 The database needs [pgvector](https://github.com/pgvector/pgvector) 0.8 or later. `docker compose up` starts one, or use `brew install pgvector`.
 
+- **Compose:** buttons on a blog post's title, content and main image generate text and images with [`@ai-stack/payloadcms`](https://github.com/ashbuilds/payload-ai). It needs `OPENAI_API_KEY`, which goes directly to OpenAI rather than through the Gateway. Tenant admins and super admins can generate; only super admins can edit the prompts, because all tenants share them.
+- **Field translation:** the Compose menu on a field translates it to Bulgarian or English. It rewrites that field in the locale being edited, so switch the admin to the target locale first, and copy the source text in if that field is empty. To translate a whole post from another locale, use the Translate button instead.
 - **Translate:** the button on a blog post fills the locale selected in the admin from another locale, and saves the result as a draft. Publishing still applies to all locales.
 - **Search:** `GET /api/search?tenant=<slug>&q=<text>&locale=<code>` searches published content by meaning and keywords. Publishing queues a job that updates the index. `pnpm search:backfill` indexes everything, for example after first adding keys.
-- **MCP:** `/api/mcp` offers read-only `blog` and `pages`, plus `semanticSearch` and `translatePost`. Create keys under MCP → API Keys. A key acts as its owner, within that user's access. Give each tenant a service user with the `tenant-admin` role.
+- **MCP:** `/api/mcp` can read and create `blog` posts and read `pages`, plus `semanticSearch` and `translatePost`. Create keys under MCP → API Keys. A key acts as its owner, within that user's access. Give each tenant a service user with the `tenant-admin` role. To use it from Claude Code, the project's `.mcp.json` connects to `http://localhost:3000/api/mcp`: export `PAYLOAD_MCP_API_KEY` with your key.
 - **Assistant:** an [eve](https://eve.dev/docs) agent at `/admin/assistant`, in `agent/`. It needs Node 24, `EVE_ENABLED=true` and `PAYLOAD_MCP_KEYS`. Outside Vercel, it also needs Docker for eve's sandbox.
 
 ### Going live
@@ -127,6 +141,9 @@ The database needs [pgvector](https://github.com/pgvector/pgvector) 0.8 or later
 
 ### Database and tests
 
-The schema is managed by migrations in every environment. `pnpm dev` applies new ones and keeps your data; `pnpm dev:fresh` wipes and reseeds. After changing a collection, run `pnpm payload migrate:create`.
+The schema is managed by migrations in every environment, and they only run when you run them: neither `pnpm dev` nor a deploy applies them. After changing a collection, run `pnpm payload migrate:create`, then `pnpm payload migrate`. If there are pending migrations, the app can fail on queries for tables and columns that don't exist yet.
+
+In production, run `pnpm payload migrate` with `POSTGRES_URL` pointing at the production database before the deployment that needs the change goes live. `pnpm dev:fresh` wipes the database, then applies every migration and reseeds.
 
 `pnpm test` runs against a separate database, which must have a name ending in `_test`: run `createdb multi_tenant_test`, or set `TEST_POSTGRES_URL`.
+# cc-multi-tenant
