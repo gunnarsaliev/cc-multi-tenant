@@ -1,5 +1,5 @@
 {
-  "buildCommand": "pnpm build:prod",
+  "buildCommand": "pnpm build",
   "crons": [
     {
       "path": "/api/payload-jobs/run",

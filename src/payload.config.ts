@@ -7,6 +7,14 @@ import sharp from 'sharp'
 import { fileURLToPath } from 'url'
 
 import { Blog } from './collections/Blog'
+import { ConsentLogs } from './collections/ConsentLogs'
+import { ConsentSettings } from './collections/ConsentSettings'
+import {
+  consentConfigEndpoint,
+  consentLogEndpoint,
+  consentLogPreflightEndpoint,
+} from './consent/endpoints'
+import { composePlugin } from './ai/compose'
 import { reindexDocumentTask } from './jobs/reindexDocument'
 import { semanticSearchTool, translatePostTool } from './mcp/tools'
 import { searchEndpoint } from './search/endpoint'
@@ -39,7 +47,7 @@ export default buildConfig({
     },
     user: 'users',
   },
-  collections: [Pages, Blog, Media, Users, Tenants],
+  collections: [Pages, Blog, Media, Users, Tenants, ConsentSettings, ConsentLogs],
   // db: mongooseAdapter({
   //   url: process.env.DATABASE_URL as string,
   // }),
@@ -99,7 +107,12 @@ export default buildConfig({
     }
   },
   editor: lexicalEditor({}),
-  endpoints: [searchEndpoint],
+  endpoints: [
+    searchEndpoint,
+    consentConfigEndpoint,
+    consentLogEndpoint,
+    consentLogPreflightEndpoint,
+  ],
   graphQL: {
     schemaOutputFile: path.resolve(dirname, 'generated-schema.graphql'),
   },
@@ -109,10 +122,12 @@ export default buildConfig({
     outputFile: path.resolve(dirname, 'payload-types.ts'),
   },
   plugins: [
-    // Read-only collection access: writes go through the translatePost tool, which only saves drafts.
+    composePlugin,
+    // Blog posts can be read and created. Everything else is read-only; other writes go through the
+    // translatePost tool, which only saves drafts.
     mcpPlugin({
       collections: {
-        blog: { enabled: { find: true } },
+        blog: { enabled: { create: true, find: true } },
         pages: { enabled: { find: true } },
       },
       mcp: {
@@ -124,6 +139,8 @@ export default buildConfig({
     multiTenantPlugin<Config>({
       collections: {
         blog: {},
+        'consent-logs': {},
+        'consent-settings': { isGlobal: true },
         media: {},
         pages: {},
       },

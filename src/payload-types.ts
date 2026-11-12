@@ -73,6 +73,9 @@ export interface Config {
     media: Media;
     users: User;
     tenants: Tenant;
+    'consent-settings': ConsentSetting;
+    'consent-logs': ConsentLog;
+    'plugin-ai-instructions': PluginAiInstruction;
     'payload-mcp-api-keys': PayloadMcpApiKey;
     'payload-kv': PayloadKv;
     'payload-jobs': PayloadJob;
@@ -87,6 +90,9 @@ export interface Config {
     media: MediaSelect<false> | MediaSelect<true>;
     users: UsersSelect<false> | UsersSelect<true>;
     tenants: TenantsSelect<false> | TenantsSelect<true>;
+    'consent-settings': ConsentSettingsSelect<false> | ConsentSettingsSelect<true>;
+    'consent-logs': ConsentLogsSelect<false> | ConsentLogsSelect<true>;
+    'plugin-ai-instructions': PluginAiInstructionsSelect<false> | PluginAiInstructionsSelect<true>;
     'payload-mcp-api-keys': PayloadMcpApiKeysSelect<false> | PayloadMcpApiKeysSelect<true>;
     'payload-kv': PayloadKvSelect<false> | PayloadKvSelect<true>;
     'payload-jobs': PayloadJobsSelect<false> | PayloadJobsSelect<true>;
@@ -301,6 +307,119 @@ export interface User {
   collection: 'users';
 }
 /**
+ * Leave a text empty to use the standard wording for that language.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "consent-settings".
+ */
+export interface ConsentSetting {
+  id: number;
+  tenant?: (number | null) | Tenant;
+  preferencesEnabled?: boolean | null;
+  analyticsEnabled?: boolean | null;
+  marketingEnabled?: boolean | null;
+  privacyPolicyUrl?: string | null;
+  /**
+   * Raise this number to show the banner again to everyone who already answered.
+   */
+  revision?: number | null;
+  title?: string | null;
+  description?: string | null;
+  acceptAllLabel?: string | null;
+  rejectAllLabel?: string | null;
+  manageLabel?: string | null;
+  preferencesTitle?: string | null;
+  saveLabel?: string | null;
+  necessaryDescription?: string | null;
+  preferencesDescription?: string | null;
+  analyticsDescription?: string | null;
+  marketingDescription?: string | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "consent-logs".
+ */
+export interface ConsentLog {
+  id: number;
+  tenant?: (number | null) | Tenant;
+  consentId: string;
+  preferences: boolean;
+  analytics: boolean;
+  marketing: boolean;
+  /**
+   * The banner settings revision the visitor answered.
+   */
+  revision?: number | null;
+  url?: string | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "plugin-ai-instructions".
+ */
+export interface PluginAiInstruction {
+  id: number;
+  /**
+   * Please don't change this unless you're sure of what you're doing
+   */
+  'schema-path'?: string | null;
+  /**
+   * Please don't change this unless you're sure of what you're doing
+   */
+  'field-type'?: ('text' | 'textarea' | 'upload' | 'richText') | null;
+  'relation-to'?: string | null;
+  'model-id'?: ('Oai-text' | 'gpt-image-1' | 'Oai-object') | null;
+  /**
+   * Please reload your collection after applying the changes
+   */
+  disabled?: boolean | null;
+  /**
+   * Click 'Compose' to run this custom prompt and generate content
+   */
+  prompt?: string | null;
+  images?:
+    | {
+        /**
+         * Reference images require a server-side image resolver configured by your developer.
+         */
+        image?: (number | null) | Media;
+        id?: string | null;
+      }[]
+    | null;
+  system?: string | null;
+  layout?: string | null;
+  'Oai-text-settings'?: {
+    model?:
+      | ('gpt-5' | 'gpt-5-mini' | 'gpt-5-nano' | 'gpt-4.1' | 'gpt-4o' | 'gpt-4-turbo' | 'gpt-4o-mini' | 'gpt-3.5-turbo')
+      | null;
+    maxTokens?: number | null;
+    temperature?: number | null;
+    extractAttachments?: boolean | null;
+  };
+  'gpt-image-1-settings'?: {
+    version?: 'gpt-image-1' | null;
+    size?: ('1024x1024' | '1024x1536' | '1536x1024' | 'auto') | null;
+    quality?: ('low' | 'medium' | 'high' | 'auto') | null;
+    output_format?: ('png' | 'jpeg' | 'webp') | null;
+    output_compression?: number | null;
+    background?: ('white' | 'transparent') | null;
+    moderation?: ('auto' | 'low') | null;
+  };
+  'Oai-object-settings'?: {
+    model?:
+      | ('gpt-5' | 'gpt-5-mini' | 'gpt-5-nano' | 'gpt-4.1' | 'gpt-4o' | 'gpt-4-turbo' | 'gpt-4o-mini' | 'gpt-3.5-turbo')
+      | null;
+    maxTokens?: number | null;
+    temperature?: number | null;
+    extractAttachments?: boolean | null;
+  };
+  updatedAt: string;
+  createdAt: string;
+}
+/**
  * API keys control which collections, resources, tools, and prompts MCP clients can access
  *
  * This interface was referenced by `Config`'s JSON-Schema
@@ -325,6 +444,10 @@ export interface PayloadMcpApiKey {
      * Allow clients to find blog.
      */
     find?: boolean | null;
+    /**
+     * Allow clients to create blog.
+     */
+    create?: boolean | null;
   };
   pages?: {
     /**
@@ -485,6 +608,18 @@ export interface PayloadLockedDocument {
     | ({
         relationTo: 'tenants';
         value: number | Tenant;
+      } | null)
+    | ({
+        relationTo: 'consent-settings';
+        value: number | ConsentSetting;
+      } | null)
+    | ({
+        relationTo: 'consent-logs';
+        value: number | ConsentLog;
+      } | null)
+    | ({
+        relationTo: 'plugin-ai-instructions';
+        value: number | PluginAiInstruction;
       } | null)
     | ({
         relationTo: 'payload-mcp-api-keys';
@@ -668,6 +803,95 @@ export interface TenantsSelect<T extends boolean = true> {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "consent-settings_select".
+ */
+export interface ConsentSettingsSelect<T extends boolean = true> {
+  tenant?: T;
+  preferencesEnabled?: T;
+  analyticsEnabled?: T;
+  marketingEnabled?: T;
+  privacyPolicyUrl?: T;
+  revision?: T;
+  title?: T;
+  description?: T;
+  acceptAllLabel?: T;
+  rejectAllLabel?: T;
+  manageLabel?: T;
+  preferencesTitle?: T;
+  saveLabel?: T;
+  necessaryDescription?: T;
+  preferencesDescription?: T;
+  analyticsDescription?: T;
+  marketingDescription?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "consent-logs_select".
+ */
+export interface ConsentLogsSelect<T extends boolean = true> {
+  tenant?: T;
+  consentId?: T;
+  preferences?: T;
+  analytics?: T;
+  marketing?: T;
+  revision?: T;
+  url?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "plugin-ai-instructions_select".
+ */
+export interface PluginAiInstructionsSelect<T extends boolean = true> {
+  'schema-path'?: T;
+  'field-type'?: T;
+  'relation-to'?: T;
+  'model-id'?: T;
+  disabled?: T;
+  prompt?: T;
+  images?:
+    | T
+    | {
+        image?: T;
+        id?: T;
+      };
+  system?: T;
+  layout?: T;
+  'Oai-text-settings'?:
+    | T
+    | {
+        model?: T;
+        maxTokens?: T;
+        temperature?: T;
+        extractAttachments?: T;
+      };
+  'gpt-image-1-settings'?:
+    | T
+    | {
+        version?: T;
+        size?: T;
+        quality?: T;
+        output_format?: T;
+        output_compression?: T;
+        background?: T;
+        moderation?: T;
+      };
+  'Oai-object-settings'?:
+    | T
+    | {
+        model?: T;
+        maxTokens?: T;
+        temperature?: T;
+        extractAttachments?: T;
+      };
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "payload-mcp-api-keys_select".
  */
 export interface PayloadMcpApiKeysSelect<T extends boolean = true> {
@@ -678,6 +902,7 @@ export interface PayloadMcpApiKeysSelect<T extends boolean = true> {
     | T
     | {
         find?: T;
+        create?: T;
       };
   pages?:
     | T

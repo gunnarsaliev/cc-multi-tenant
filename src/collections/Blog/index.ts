@@ -1,3 +1,5 @@
+import { PayloadAiPluginLexicalEditorFeature } from '@ai-stack/payloadcms'
+import { lexicalEditor } from '@payloadcms/richtext-lexical'
 import { queueReindexAfterChange, queueReindexAfterDelete } from '@/search/hooks'
 import type { CollectionConfig, TextField } from 'payload'
 
@@ -58,6 +60,9 @@ export const Blog: CollectionConfig = {
     {
       name: 'content',
       type: 'richText',
+      editor: lexicalEditor({
+        features: ({ rootFeatures }) => [...rootFeatures, PayloadAiPluginLexicalEditorFeature()],
+      }),
       localized: true,
     },
     // Adds the lock, unlock and generate controls to the slug in the admin panel.

@@ -5,10 +5,8 @@
   "license": "MIT",
   "type": "module",
   "scripts": {
-    "_dev": "cross-env NODE_OPTIONS=--no-deprecation next dev",
     "build": "cross-env NODE_OPTIONS=--no-deprecation next build",
-    "build:prod": "pnpm payload migrate && pnpm build",
-    "dev": "pnpm payload migrate && cross-env NODE_OPTIONS=--no-deprecation next dev",
+    "dev": "cross-env NODE_OPTIONS=--no-deprecation next dev",
     "dev:fresh": "pnpm seed && cross-env NODE_OPTIONS=--no-deprecation next dev",
     "generate:importmap": "cross-env NODE_OPTIONS=--no-deprecation payload generate:importmap",
     "generate:schema": "payload-graphql generate:schema",
@@ -21,6 +19,7 @@
     "test:watch": "vitest"
   },
   "dependencies": {
+    "@ai-stack/payloadcms": "4.0.1",
     "@payloadcms/db-mongodb": "3.92.1",
     "@payloadcms/db-postgres": "3.92.1",
     "@payloadcms/next": "3.92.1",
