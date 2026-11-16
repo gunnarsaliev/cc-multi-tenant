@@ -70,6 +70,7 @@ export interface Config {
   collections: {
     pages: Page;
     blog: Blog;
+    'blog-categories': BlogCategory;
     media: Media;
     users: User;
     tenants: Tenant;
@@ -83,10 +84,15 @@ export interface Config {
     'payload-preferences': PayloadPreference;
     'payload-migrations': PayloadMigration;
   };
-  collectionsJoins: {};
+  collectionsJoins: {
+    'blog-categories': {
+      posts: 'blog';
+    };
+  };
   collectionsSelect: {
     pages: PagesSelect<false> | PagesSelect<true>;
     blog: BlogSelect<false> | BlogSelect<true>;
+    'blog-categories': BlogCategoriesSelect<false> | BlogCategoriesSelect<true>;
     media: MediaSelect<false> | MediaSelect<true>;
     users: UsersSelect<false> | UsersSelect<true>;
     tenants: TenantsSelect<false> | TenantsSelect<true>;
@@ -221,6 +227,21 @@ export interface Blog {
    */
   generateSlug?: boolean | null;
   slug: string;
+  meta?: {
+    /**
+     * Shown in search results and browser tabs. Aim for 50 to 60 characters.
+     */
+    title?: string | null;
+    /**
+     * Shown under the title in search results. Aim for 100 to 150 characters.
+     */
+    description?: string | null;
+    /**
+     * Shown when the post is shared. The main image is a good default.
+     */
+    image?: (number | null) | Media;
+  };
+  categories?: (number | BlogCategory)[] | null;
   updatedAt: string;
   createdAt: string;
   _status?: ('draft' | 'published') | null;
@@ -270,6 +291,28 @@ export interface Media {
       filename?: string | null;
     };
   };
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "blog-categories".
+ */
+export interface BlogCategory {
+  id: number;
+  tenant?: (number | null) | Tenant;
+  title: string;
+  description?: string | null;
+  /**
+   * When enabled, the slug will auto-generate from the title field on save and autosave.
+   */
+  generateSlug?: boolean | null;
+  slug: string;
+  posts?: {
+    docs?: (number | Blog)[];
+    hasNextPage?: boolean;
+    totalDocs?: number;
+  };
+  updatedAt: string;
+  createdAt: string;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -448,6 +491,20 @@ export interface PayloadMcpApiKey {
      * Allow clients to create blog.
      */
     create?: boolean | null;
+    /**
+     * Allow clients to update blog.
+     */
+    update?: boolean | null;
+  };
+  blogCategories?: {
+    /**
+     * Allow clients to find blog-categories.
+     */
+    find?: boolean | null;
+    /**
+     * Allow clients to create blog-categories.
+     */
+    create?: boolean | null;
   };
   pages?: {
     /**
@@ -598,6 +655,10 @@ export interface PayloadLockedDocument {
         value: number | Blog;
       } | null)
     | ({
+        relationTo: 'blog-categories';
+        value: number | BlogCategory;
+      } | null)
+    | ({
         relationTo: 'media';
         value: number | Media;
       } | null)
@@ -699,9 +760,31 @@ export interface BlogSelect<T extends boolean = true> {
   content?: T;
   generateSlug?: T;
   slug?: T;
+  meta?:
+    | T
+    | {
+        title?: T;
+        description?: T;
+        image?: T;
+      };
+  categories?: T;
   updatedAt?: T;
   createdAt?: T;
   _status?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "blog-categories_select".
+ */
+export interface BlogCategoriesSelect<T extends boolean = true> {
+  tenant?: T;
+  title?: T;
+  description?: T;
+  generateSlug?: T;
+  slug?: T;
+  posts?: T;
+  updatedAt?: T;
+  createdAt?: T;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -899,6 +982,13 @@ export interface PayloadMcpApiKeysSelect<T extends boolean = true> {
   label?: T;
   description?: T;
   blog?:
+    | T
+    | {
+        find?: T;
+        create?: T;
+        update?: T;
+      };
+  blogCategories?:
     | T
     | {
         find?: T;

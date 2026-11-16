@@ -7,6 +7,7 @@ import sharp from 'sharp'
 import { fileURLToPath } from 'url'
 
 import { Blog } from './collections/Blog'
+import { BlogCategories } from './collections/BlogCategories'
 import { ConsentLogs } from './collections/ConsentLogs'
 import { ConsentSettings } from './collections/ConsentSettings'
 import {
@@ -47,7 +48,7 @@ export default buildConfig({
     },
     user: 'users',
   },
-  collections: [Pages, Blog, Media, Users, Tenants, ConsentSettings, ConsentLogs],
+  collections: [Pages, Blog, BlogCategories, Media, Users, Tenants, ConsentSettings, ConsentLogs],
   // db: mongooseAdapter({
   //   url: process.env.DATABASE_URL as string,
   // }),
@@ -123,11 +124,13 @@ export default buildConfig({
   },
   plugins: [
     composePlugin,
-    // Blog posts can be read and created. Everything else is read-only; other writes go through the
+    // Blog posts can be read, created and updated (updates are needed to assign categories), and
+    // blog categories can be read and created. Pages are read-only. Translations go through the
     // translatePost tool, which only saves drafts.
     mcpPlugin({
       collections: {
-        blog: { enabled: { create: true, find: true } },
+        blog: { enabled: { create: true, find: true, update: true } },
+        'blog-categories': { enabled: { create: true, find: true } },
         pages: { enabled: { find: true } },
       },
       mcp: {
@@ -139,6 +142,7 @@ export default buildConfig({
     multiTenantPlugin<Config>({
       collections: {
         blog: {},
+        'blog-categories': {},
         'consent-logs': {},
         'consent-settings': { isGlobal: true },
         media: {},

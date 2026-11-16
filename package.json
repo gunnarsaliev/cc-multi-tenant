@@ -5,6 +5,7 @@
   "license": "MIT",
   "type": "module",
   "scripts": {
+    "blog:import": "cross-env NODE_OPTIONS=--no-deprecation payload run src/scripts/importBlog.ts --",
     "build": "cross-env NODE_OPTIONS=--no-deprecation next build",
     "dev": "cross-env NODE_OPTIONS=--no-deprecation next dev",
     "dev:fresh": "pnpm seed && cross-env NODE_OPTIONS=--no-deprecation next dev",
@@ -43,12 +44,14 @@
   "devDependencies": {
     "@payloadcms/graphql": "3.92.1",
     "@swc/core": "^1.16.21",
+    "@types/jsdom": "^30.0.0",
     "@types/node": "24.19.2",
     "@types/pg": "^8.23.1",
     "@types/react": "19.3.0",
     "@types/react-dom": "19.3.0",
     "eslint": "^9.39.5",
     "eslint-config-next": "16.4.5",
+    "jsdom": "^31.0.1",
     "pg": "8.20.0",
     "tsx": "^4.23.15",
     "typescript": "6.0.3",
