@@ -128,4 +128,44 @@ describe('tenant membership changes', () => {
     expect(updated.username).toBe(`name-${viewer.id}`)
     expect(await rolesFor(viewer.id, tenantA.id)).toEqual(['tenant-viewer'])
   })
+
+  // A user's tenant row cannot have an empty tenant, so the row must go before the tenant does.
+  it('deletes a tenant that users are still assigned to', async () => {
+    const doomed = await createTenant(payload)
+    const member = await createUser(payload, [
+      { roles: ['tenant-admin'], tenant: doomed.id },
+      { roles: ['tenant-viewer'], tenant: tenantB.id },
+    ])
+
+    const { errors } = await payload.delete({
+      collection: 'tenants',
+      where: { id: { equals: doomed.id } },
+    })
+
+    expect(errors).toEqual([])
+    expect(await payload.count({ collection: 'tenants', where: { id: { equals: doomed.id } } })).toEqual({
+      totalDocs: 0,
+    })
+    expect(await rolesFor(member.id, doomed.id)).toBeUndefined()
+    expect(await rolesFor(member.id, tenantB.id)).toEqual(['tenant-viewer'])
+  })
+
+  // Bulk deletes handle every tenant at once, and each one rewrites the same user.
+  it('deletes several tenants assigned to the same user in one request', async () => {
+    const doomed = await Promise.all([createTenant(payload), createTenant(payload), createTenant(payload)])
+    const member = await createUser(payload, [
+      ...doomed.map((tenant) => ({ roles: ['tenant-admin' as const], tenant: tenant.id })),
+      { roles: ['tenant-viewer'], tenant: tenantB.id },
+    ])
+    const ids = doomed.map((tenant) => tenant.id)
+
+    const { errors } = await payload.delete({ collection: 'tenants', where: { id: { in: ids } } })
+
+    expect(errors).toEqual([])
+    expect((await payload.count({ collection: 'tenants', where: { id: { in: ids } } })).totalDocs).toBe(0)
+
+    const user = await payload.findByID({ collection: 'users', depth: 0, id: member.id })
+
+    expect(user.tenants?.map((row) => row.tenant)).toEqual([tenantB.id])
+  })
 })

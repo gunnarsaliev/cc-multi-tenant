@@ -3,6 +3,7 @@ import type { CollectionConfig } from 'payload'
 import { getAppUser } from '@/access/getAppUser'
 import { isSuperAdminAccess } from '@/access/isSuperAdmin'
 import { updateAndDeleteAccess } from './access/updateAndDelete'
+import { removeFromUsers } from './hooks/removeFromUsers'
 
 export const Tenants: CollectionConfig = {
   slug: 'tenants',
@@ -14,6 +15,9 @@ export const Tenants: CollectionConfig = {
   },
   admin: {
     useAsTitle: 'name',
+  },
+  hooks: {
+    beforeDelete: [removeFromUsers],
   },
   fields: [
     {

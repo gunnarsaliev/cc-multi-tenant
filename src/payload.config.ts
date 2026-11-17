@@ -16,7 +16,9 @@ import {
   consentLogPreflightEndpoint,
 } from './consent/endpoints'
 import { composePlugin } from './ai/compose'
+import { importExport } from './importExport'
 import { reindexDocumentTask } from './jobs/reindexDocument'
+import { expandAllCollections, withAllCollectionsField } from './mcp/allCollections'
 import { semanticSearchTool, translatePostTool } from './mcp/tools'
 import { searchEndpoint } from './search/endpoint'
 import { addContentChunksTable } from './search/schema'
@@ -24,13 +26,22 @@ import { Media } from './collections/Media'
 import { Pages } from './collections/Pages'
 import { Tenants } from './collections/Tenants'
 import Users from './collections/Users'
-import { mcpPlugin } from '@payloadcms/plugin-mcp'
+import { mcpPlugin, type MCPPluginConfig } from '@payloadcms/plugin-mcp'
 import { multiTenantPlugin } from '@payloadcms/plugin-multi-tenant'
 import { getAppUser } from './access/getAppUser'
 import { isSuperAdmin } from './access/isSuperAdmin'
 import type { Config } from './payload-types'
 import { getUserTenantIDs } from './utilities/getUserTenantIDs'
 import { seed } from './seed'
+
+// Blog posts can be read, created and updated (updates are needed to assign categories), and
+// blog categories can be read and created. Pages are read-only. Translations go through the
+// translatePost tool, which only saves drafts.
+const mcpCollections = {
+  blog: { enabled: { create: true, find: true, update: true } },
+  'blog-categories': { enabled: { create: true, find: true } },
+  pages: { enabled: { find: true } },
+} satisfies MCPPluginConfig['collections']
 
 const filename = fileURLToPath(import.meta.url)
 const dirname = path.dirname(filename)
@@ -124,19 +135,18 @@ export default buildConfig({
   },
   plugins: [
     composePlugin,
-    // Blog posts can be read, created and updated (updates are needed to assign categories), and
-    // blog categories can be read and created. Pages are read-only. Translations go through the
-    // translatePost tool, which only saves drafts.
+    // CSV and JSON export for every collection, and import where it is safe (see importExport).
+    importExport,
     mcpPlugin({
-      collections: {
-        blog: { enabled: { create: true, find: true, update: true } },
-        'blog-categories': { enabled: { create: true, find: true } },
-        pages: { enabled: { find: true } },
-      },
+      collections: mcpCollections,
       mcp: {
         // Cast because the plugin's own copy of Zod 3 makes comparing the types too deep for tsc.
         tools: [semanticSearchTool, translatePostTool] as never,
       },
+      // A key's "All collections" checkbox grants every operation listed in mcpCollections.
+      overrideApiKeyCollection: withAllCollectionsField(mcpCollections),
+      overrideAuth: async (_req, getDefaultMcpAccessSettings) =>
+        expandAllCollections(await getDefaultMcpAccessSettings(), mcpCollections),
       userCollection: 'users',
     }),
     multiTenantPlugin<Config>({
