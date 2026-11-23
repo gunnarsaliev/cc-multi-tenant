@@ -9,7 +9,7 @@ import { extractID } from '@/utilities/extractID'
 import { getUserTenantIDs } from '@/utilities/getUserTenantIDs'
 
 import { hasContent, InvalidTranslationError, type LexicalState } from './lexical'
-import { translateContent } from './translateContent'
+import { type FAQItem, translateContent } from './translateContent'
 
 export class TranslationRequestError extends Error {
   constructor(
@@ -24,6 +24,7 @@ type Authenticated = { collection: 'users' } & User
 
 type LocalizedPost = {
   content?: null | Record<string, LexicalState | null>
+  faq?: null | Record<string, ({ id?: null | string } & FAQItem)[] | null>
   tenant?: unknown
   title?: null | Record<string, null | string>
 }
@@ -46,7 +47,9 @@ const readAllLocales = async (payload: Payload, id: number | string, user: Authe
   })) as unknown as LocalizedPost
 
 const localeHasContent = (post: LocalizedPost, locale: string) =>
-  Boolean(post.title?.[locale]?.trim()) || hasContent(post.content?.[locale])
+  Boolean(post.title?.[locale]?.trim()) ||
+  hasContent(post.content?.[locale]) ||
+  Boolean(post.faq?.[locale]?.some((item) => item.question?.trim()))
 
 const canUpdate = (post: LocalizedPost, user: Authenticated) =>
   isSuperAdmin(user) ||
@@ -130,6 +133,7 @@ export const translatePost = async ({
   try {
     translated = await translateContent({
       content: post.content?.[source],
+      faq: post.faq?.[source]?.map(({ answer, question }) => ({ answer, question })),
       model,
       sourceLocale: source,
       targetLocale,
@@ -151,6 +155,8 @@ export const translatePost = async ({
     data: {
       ...(translated.title ? { title: translated.title } : {}),
       ...(translated.content ? { content: translated.content as never } : {}),
+      // Without row ids, Payload creates the target locale's own rows.
+      ...(translated.faq ? { faq: translated.faq as never } : {}),
     },
     draft: true,
     id,

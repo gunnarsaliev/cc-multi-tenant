@@ -5,13 +5,23 @@
  *
  *   pnpm add vanilla-cookieconsent
  *
- *   // app/layout.tsx
- *   <CookieBanner apiUrl={process.env.NEXT_PUBLIC_CMS_URL!} tenant="hubavajena" locale="bg" />
+ *   // app/[lang]/layout.tsx
+ *   <CookieBanner
+ *     apiUrl={process.env.NEXT_PUBLIC_CMS_URL!}
+ *     tenant="hubavajena"
+ *     locale={lang}
+ *     locales={['bg', 'en']}
+ *     privacyLinkLabel={{ bg: 'Политика за поверителност', en: 'Privacy policy' }}
+ *   />
  *
  * `tenant` is the tenant's slug in the CMS. The CMS only accepts consent records from the
  * tenant's `domain`, so that field must match this site's address (localhost works in development).
+ *
+ * `locales` lists every language the site has. The library can only be set up once per page, so all
+ * of them are loaded up front, and changing `locale` (for example a client-side language switch)
+ * changes the banner's language in place.
  */
-import { useEffect } from 'react'
+import { useEffect, useRef } from 'react'
 import * as CookieConsent from 'vanilla-cookieconsent'
 import 'vanilla-cookieconsent/dist/cookieconsent.css'
 
@@ -41,12 +51,17 @@ type ConsentConfig = {
   >
 }
 
+type OptionalCategory = 'analytics' | 'marketing' | 'preferences'
+
 type Props = {
   /** The CMS address, for example https://cms.example.com */
   apiUrl: string
+  /** The language to show now. */
   locale?: string
-  /** Shown as the privacy policy link text. */
-  privacyLinkLabel?: string
+  /** Every language the site has. Defaults to just `locale`. */
+  locales?: string[]
+  /** Shown as the privacy policy link text: one label, or one per language. */
+  privacyLinkLabel?: Record<string, string> | string
   tenant: string
 }
 
@@ -57,9 +72,70 @@ const escape = (value: string) =>
     (char) => ({ '"': '&quot;', '&': '&amp;', "'": '&#39;', '<': '&lt;', '>': '&gt;' })[char]!,
   )
 
-export function CookieBanner({ apiUrl, locale = 'en', privacyLinkLabel = 'Privacy policy', tenant }: Props) {
+const toTranslation = (
+  config: ConsentConfig,
+  optional: OptionalCategory[],
+  linkLabel: string,
+): CookieConsent.Translation => {
+  const texts = Object.fromEntries(
+    Object.entries(config.texts).map(([key, value]) => [key, escape(value)]),
+  ) as ConsentConfig['texts']
+
+  return {
+    consentModal: {
+      acceptAllBtn: texts.acceptAllLabel,
+      acceptNecessaryBtn: texts.rejectAllLabel,
+      description: texts.description,
+      footer: config.privacyPolicyUrl
+        ? `<a href="${escape(config.privacyPolicyUrl)}">${escape(linkLabel)}</a>`
+        : undefined,
+      showPreferencesBtn: texts.manageLabel,
+      title: texts.title,
+    },
+    preferencesModal: {
+      acceptAllBtn: texts.acceptAllLabel,
+      acceptNecessaryBtn: texts.rejectAllLabel,
+      savePreferencesBtn: texts.saveLabel,
+      sections: [
+        {
+          description: texts.necessaryDescription,
+          linkedCategory: 'necessary',
+          title: texts.necessaryLabel,
+        },
+        ...optional.map((name) => ({
+          description: texts[`${name}Description`],
+          linkedCategory: name,
+          title: texts[`${name}Label`],
+        })),
+      ],
+      title: texts.preferencesTitle,
+    },
+  }
+}
+
+export function CookieBanner({
+  apiUrl,
+  locale = 'en',
+  locales,
+  privacyLinkLabel = 'Privacy policy',
+  tenant,
+}: Props) {
+  // Resolves once the banner is running, so language changes can wait for it.
+  const ready = useRef<Promise<void> | null>(null)
+  // The language to start in, read when setup finishes rather than when it begins.
+  const currentLocale = useRef(locale)
+  currentLocale.current = locale
+
+  const allLocales = [...new Set([...(locales ?? []), locale])]
+  const localesKey = allLocales.join(',')
+  const labelKey = JSON.stringify(privacyLinkLabel)
+
   useEffect(() => {
     let cancelled = false
+    const codes = localesKey.split(',')
+    const labels: Record<string, string> | string = JSON.parse(labelKey)
+    const labelFor = (code: string) =>
+      typeof labels === 'string' ? labels : (labels[code] ?? Object.values(labels)[0] ?? '')
 
     const log = (cookie: CookieConsent.CookieValue) => {
       void fetch(`${apiUrl}/api/consent/log`, {
@@ -79,22 +155,33 @@ export function CookieBanner({ apiUrl, locale = 'en', privacyLinkLabel = 'Privac
       }).catch(() => undefined)
     }
 
-    const start = async () => {
+    const fetchConfig = async (code: string): Promise<ConsentConfig | null> => {
       const response = await fetch(
-        `${apiUrl}/api/consent/config?${new URLSearchParams({ locale, tenant })}`,
+        `${apiUrl}/api/consent/config?${new URLSearchParams({ locale: code, tenant })}`,
+      )
+
+      return response.ok ? response.json() : null
+    }
+
+    const start = async () => {
+      const configs = (await Promise.all(codes.map(fetchConfig))).filter(
+        (config): config is ConsentConfig => config !== null,
       )
 
       // Without settings there is no banner, and so no consent: optional cookies stay off.
-      if (!response.ok || cancelled) {
+      if (configs.length === 0 || cancelled) {
         return
       }
 
-      const config: ConsentConfig = await response.json()
-      const texts = Object.fromEntries(
-        Object.entries(config.texts).map(([key, value]) => [key, escape(value)]),
-      ) as ConsentConfig['texts']
-
-      const optional = (['preferences', 'analytics', 'marketing'] as const).filter((name) => config.categories[name])
+      // Categories and revision are the same in every language; only the texts differ.
+      const [first] = configs
+      const optional = (['preferences', 'analytics', 'marketing'] as const).filter(
+        (name) => first.categories[name],
+      )
+      const translations = Object.fromEntries(
+        configs.map((config) => [config.locale, toTranslation(config, optional, labelFor(config.locale))]),
+      )
+      const wanted = currentLocale.current
 
       await CookieConsent.run({
         categories: {
@@ -103,54 +190,28 @@ export function CookieBanner({ apiUrl, locale = 'en', privacyLinkLabel = 'Privac
         },
         guiOptions: { consentModal: { equalWeightButtons: true } },
         language: {
-          default: config.locale,
-          translations: {
-            [config.locale]: {
-              consentModal: {
-                acceptAllBtn: texts.acceptAllLabel,
-                acceptNecessaryBtn: texts.rejectAllLabel,
-                description: texts.description,
-                footer: config.privacyPolicyUrl
-                  ? `<a href="${escape(config.privacyPolicyUrl)}">${escape(privacyLinkLabel)}</a>`
-                  : undefined,
-                showPreferencesBtn: texts.manageLabel,
-                title: texts.title,
-              },
-              preferencesModal: {
-                acceptAllBtn: texts.acceptAllLabel,
-                acceptNecessaryBtn: texts.rejectAllLabel,
-                savePreferencesBtn: texts.saveLabel,
-                sections: [
-                  {
-                    description: texts.necessaryDescription,
-                    linkedCategory: 'necessary',
-                    title: texts.necessaryLabel,
-                  },
-                  ...optional.map((name) => ({
-                    description: texts[`${name}Description`],
-                    linkedCategory: name,
-                    title: texts[`${name}Label`],
-                  })),
-                ],
-                title: texts.preferencesTitle,
-              },
-            },
-          },
+          default: wanted in translations ? wanted : first.locale,
+          translations,
         },
         // The first answer, and every later change, is one row in the CMS consent log.
         onChange: ({ cookie }) => log(cookie),
         onFirstConsent: ({ cookie }) => log(cookie),
         // Raising the revision in the CMS shows the banner again to everyone.
-        revision: config.revision,
+        revision: first.revision,
       })
     }
 
-    void start().catch(() => undefined)
+    ready.current = start().catch(() => undefined)
 
     return () => {
       cancelled = true
     }
-  }, [apiUrl, locale, privacyLinkLabel, tenant])
+  }, [apiUrl, labelKey, localesKey, tenant])
+
+  // Follow language changes without setting the banner up again (the library only runs once).
+  useEffect(() => {
+    void ready.current?.then(() => CookieConsent.setLanguage(locale)).catch(() => undefined)
+  }, [locale])
 
   return null
 }

@@ -247,6 +247,27 @@ export interface Blog {
      */
     image?: (number | null) | Media;
   };
+  faq?:
+    | {
+        question: string;
+        answer: {
+          root: {
+            type: string;
+            children: {
+              type: any;
+              version: number;
+              [k: string]: unknown;
+            }[];
+            direction: ('ltr' | 'rtl') | null;
+            format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+            indent: number;
+            version: number;
+          };
+          [k: string]: unknown;
+        };
+        id?: string | null;
+      }[]
+    | null;
   categories?: (number | BlogCategory)[] | null;
   updatedAt: string;
   createdAt: string;
@@ -853,6 +874,13 @@ export interface BlogSelect<T extends boolean = true> {
         title?: T;
         description?: T;
         image?: T;
+      };
+  faq?:
+    | T
+    | {
+        question?: T;
+        answer?: T;
+        id?: T;
       };
   categories?: T;
   updatedAt?: T;

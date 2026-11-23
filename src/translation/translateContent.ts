@@ -112,8 +112,11 @@ const translateBatch = async ({
   throw lastError
 }
 
+export type FAQItem = { answer: LexicalState | null; question: string }
+
 export type TranslateContentArgs = {
   content: LexicalState | null | undefined
+  faq?: FAQItem[] | null
   model?: LanguageModel
   sourceLocale: string
   targetLocale: string
@@ -123,11 +126,16 @@ export type TranslateContentArgs = {
 /** All or nothing: any segment that can't be validated after a retry makes the whole call throw. */
 export const translateContent = async ({
   content,
+  faq,
   model,
   sourceLocale,
   targetLocale,
   title,
-}: TranslateContentArgs): Promise<{ content: LexicalState | null; title: null | string }> => {
+}: TranslateContentArgs): Promise<{
+  content: LexicalState | null
+  faq: FAQItem[] | null
+  title: null | string
+}> => {
   const { segments, tagsByID } = content
     ? extractSegments(content)
     : { segments: [], tagsByID: new Map<string, SegmentTags>() }
@@ -135,8 +143,25 @@ export const translateContent = async ({
     ? [{ id: 'title', text: escapeText(title) }, ...segments]
     : segments
 
+  // Each answer numbers its segments from s0, so FAQ ids carry the item's position as a prefix.
+  for (const [index, item] of (faq ?? []).entries()) {
+    if (item.question?.trim()) {
+      allSegments.push({ id: `faq${index}.q`, text: escapeText(item.question) })
+    }
+
+    if (item.answer) {
+      const answer = extractSegments(item.answer)
+
+      for (const segment of answer.segments) {
+        const id = `faq${index}.a.${segment.id}`
+        allSegments.push({ id, text: segment.text })
+        tagsByID.set(id, answer.tagsByID.get(segment.id) ?? new Map())
+      }
+    }
+  }
+
   if (allSegments.length === 0) {
-    return { content: content ?? null, title: title ?? null }
+    return { content: content ?? null, faq: faq ?? null, title: title ?? null }
   }
 
   const resolvedModel = model ?? (await getTextModel())
@@ -165,8 +190,27 @@ export const translateContent = async ({
 
   await Promise.all(Array.from({ length: Math.min(CONCURRENT_BATCHES, batches.length) }, worker))
 
+  const translateAnswer = (answer: LexicalState, index: number) => {
+    const prefix = `faq${index}.a.`
+    const own = Object.fromEntries(
+      Object.entries(translations)
+        .filter(([id]) => id.startsWith(prefix))
+        .map(([id, text]) => [id.slice(prefix.length), text]),
+    )
+
+    return applyTranslations(answer, own)
+  }
+
   return {
     content: content ? applyTranslations(content, translations) : null,
+    faq: faq
+      ? faq.map((item, index) => ({
+          answer: item.answer ? translateAnswer(item.answer, index) : item.answer,
+          question: item.question?.trim()
+            ? unescapeText(translations[`faq${index}.q`] ?? '')
+            : item.question,
+        }))
+      : null,
     title: title ? unescapeText(translations.title) : null,
   }
 }

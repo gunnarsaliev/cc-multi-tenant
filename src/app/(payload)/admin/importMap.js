@@ -28,6 +28,7 @@ import { UploadFeatureClient as UploadFeatureClient_e70f5e05f09f93e00b997edb1ef0
 import { HorizontalRuleFeatureClient as HorizontalRuleFeatureClient_e70f5e05f09f93e00b997edb1ef0c864 } from '@payloadcms/richtext-lexical/client'
 import { InlineToolbarFeatureClient as InlineToolbarFeatureClient_e70f5e05f09f93e00b997edb1ef0c864 } from '@payloadcms/richtext-lexical/client'
 import { AutoSlugField as AutoSlugField_0489341138a04d4d159fcfcff1830c25 } from '@/collections/Blog/components/AutoSlugField'
+import { FAQRowLabel as FAQRowLabel_31a7f4399159d0bc6e87a47f784147e0 } from '@/collections/Blog/components/FAQRowLabel'
 import { TranslateButton as TranslateButton_8ff590e1e9ee0f0d953c728dc3c2751f } from '@/collections/Blog/components/TranslateButton'
 import { WatchTenantCollection as WatchTenantCollection_1d0591e3cf4f332c83a86da13a0de59a } from '@payloadcms/plugin-multi-tenant/client'
 import { SelectField as SelectField_4490b89d4413c1ffaecdacfe72efaf73 } from '@ai-stack/payloadcms/client'
@@ -85,6 +86,7 @@ export const importMap = {
   "@payloadcms/richtext-lexical/client#HorizontalRuleFeatureClient": HorizontalRuleFeatureClient_e70f5e05f09f93e00b997edb1ef0c864,
   "@payloadcms/richtext-lexical/client#InlineToolbarFeatureClient": InlineToolbarFeatureClient_e70f5e05f09f93e00b997edb1ef0c864,
   "@/collections/Blog/components/AutoSlugField#AutoSlugField": AutoSlugField_0489341138a04d4d159fcfcff1830c25,
+  "@/collections/Blog/components/FAQRowLabel#FAQRowLabel": FAQRowLabel_31a7f4399159d0bc6e87a47f784147e0,
   "@/collections/Blog/components/TranslateButton#TranslateButton": TranslateButton_8ff590e1e9ee0f0d953c728dc3c2751f,
   "@payloadcms/plugin-multi-tenant/client#WatchTenantCollection": WatchTenantCollection_1d0591e3cf4f332c83a86da13a0de59a,
   "@ai-stack/payloadcms/client#SelectField": SelectField_4490b89d4413c1ffaecdacfe72efaf73,

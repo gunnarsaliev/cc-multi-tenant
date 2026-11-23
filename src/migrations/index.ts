@@ -9,6 +9,7 @@ import * as migration_20261113_120501_blog_categories_and_meta from './20261113_
 import * as migration_20261113_134521_mcp_blog_categories from './20261113_134521_mcp_blog_categories';
 import * as migration_20261116_154825_import_export from './20261116_154825_import_export';
 import * as migration_20261117_144141_all_collections_mcp_keys from './20261117_144141_all_collections_mcp_keys';
+import * as migration_20261118_154513_blog_faq from './20261118_154513_blog_faq';
 
 export const migrations = [
   {
@@ -64,6 +65,11 @@ export const migrations = [
   {
     up: migration_20261117_144141_all_collections_mcp_keys.up,
     down: migration_20261117_144141_all_collections_mcp_keys.down,
-    name: '20261117_144141_all_collections_mcp_keys'
+    name: '20261117_144141_all_collections_mcp_keys',
+  },
+  {
+    up: migration_20261118_154513_blog_faq.up,
+    down: migration_20261118_154513_blog_faq.down,
+    name: '20261118_154513_blog_faq'
   },
 ];

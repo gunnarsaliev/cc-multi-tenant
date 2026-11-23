@@ -8,6 +8,7 @@ import {
   superAdminOrTenantAdminCreateAccess,
 } from '@/collections/Pages/access/superAdminOrTenantAdmin'
 import { readAccess } from './access/read'
+import { faqField } from './fields/faq'
 import { metaFields } from './fields/meta'
 import { titleSlugField } from './fields/titleSlug'
 import { translateEndpoint, translationStatusEndpoint } from './endpoints/translate'
@@ -81,6 +82,10 @@ export const Blog: CollectionConfig = {
           name: 'meta',
           fields: metaFields,
           label: 'SEO',
+        },
+        {
+          fields: [faqField],
+          label: 'FAQ',
         },
       ],
     },

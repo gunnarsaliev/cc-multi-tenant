@@ -82,3 +82,20 @@ export const chunkContent = (title: null | string | undefined, state?: LexicalSt
 
   return chunks
 }
+
+/** One chunk per question, headed by the question, so a search for it lands on its answer. */
+export const chunkFAQ = (
+  items: { answer?: LexicalState | null; question?: null | string }[] | null | undefined,
+): Chunk[] =>
+  (items ?? []).flatMap((item) => {
+    const question = item.question?.trim() || null
+    const answer = item.answer?.root
+      ? convertLexicalToPlaintext({ data: item.answer as never }).trim()
+      : ''
+
+    if (!answer) {
+      return question ? [{ content: question, heading: question }] : []
+    }
+
+    return splitLongText(answer).map((content) => ({ content, heading: question }))
+  })

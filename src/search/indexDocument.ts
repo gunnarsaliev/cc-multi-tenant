@@ -9,7 +9,7 @@ import type { LexicalState } from '@/translation/lexical'
 import { getEmbeddingModel, getEmbeddingModelID, isEmbeddingAIConfigured } from '@/ai/models'
 import { extractID } from '@/utilities/extractID'
 
-import { chunkContent } from './chunkContent'
+import { chunkContent, chunkFAQ } from './chunkContent'
 import { getDatabase } from './db'
 
 export const INDEXED_COLLECTIONS = ['blog', 'pages'] as const
@@ -19,6 +19,7 @@ export type IndexedCollection = (typeof INDEXED_COLLECTIONS)[number]
 type LocalizedDoc = {
   _status?: 'draft' | 'published' | null
   content?: null | Record<string, LexicalState | null>
+  faq?: null | Record<string, { answer?: LexicalState | null; question?: null | string }[] | null>
   slug?: null | string
   tenant?: unknown
   title?: null | Record<string, null | string>
@@ -73,7 +74,12 @@ export const indexDocument = async ({
   const wanted = locales.flatMap((locale) => {
     const title = doc.title?.[locale]
 
-    return chunkContent(title, doc.content?.[locale]).map((chunk, chunkIndex) => {
+    const chunks = [
+      ...chunkContent(title, doc.content?.[locale]),
+      ...chunkFAQ(doc.faq?.[locale]),
+    ]
+
+    return chunks.map((chunk, chunkIndex) => {
       const embedText = [title, chunk.heading, chunk.content].filter(Boolean).join('\n\n')
 
       return {

@@ -4,7 +4,7 @@ import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import type { Tenant } from '@/payload-types'
 
-import { chunkContent } from '@/search/chunkContent'
+import { chunkContent, chunkFAQ } from '@/search/chunkContent'
 import { getDatabase } from '@/search/db'
 import { searchEndpoint } from '@/search/endpoint'
 import { indexAllDocuments, indexDocument } from '@/search/indexDocument'
@@ -71,6 +71,22 @@ describe('chunking', () => {
       { content: 'Only a title', heading: null },
     ])
     expect(chunkContent(null, null)).toEqual([])
+  })
+})
+
+describe('chunking an FAQ', () => {
+  it('makes one chunk per answer, headed by its question', () => {
+    expect(
+      chunkFAQ([
+        { answer: lexical(paragraph('Daily in summer.')), question: 'How often to water?' },
+        { answer: lexical(paragraph('')), question: 'Any pests?' },
+        { answer: null, question: '' },
+      ]),
+    ).toEqual([
+      { content: 'Daily in summer.', heading: 'How often to water?' },
+      { content: 'Any pests?', heading: 'Any pests?' },
+    ])
+    expect(chunkFAQ(null)).toEqual([])
   })
 })
 
@@ -205,6 +221,28 @@ describe('semantic search', () => {
 
     expect((await search(tenantA, 'градини текст', 'bg'))[0].docID).toBe(post.id)
     expect(await search(tenantA, 'градини текст', 'en')).toEqual([])
+  })
+
+  it('indexes FAQ answers under their questions, in their own locale', async () => {
+    const post = await createPost(tenantA, 'Tomato care', 'General notes.')
+    await payload.update({
+      collection: 'blog',
+      data: {
+        faq: [{ answer: lexical(paragraph('Pinch suckers weekly for bigger fruit.')), question: 'How do I prune tomatoes?' }],
+      },
+      id: post.id,
+      locale: 'en',
+    })
+    await runJobs()
+
+    const { rows } = await getDatabase(payload).execute(
+      sql`SELECT heading, content FROM content_chunks WHERE doc_id = ${post.id} AND collection = 'blog' AND locale = 'en'`,
+    )
+    expect(rows).toContainEqual({
+      content: 'Pinch suckers weekly for bigger fruit.',
+      heading: 'How do I prune tomatoes?',
+    })
+    expect(await chunkCount(post.id, 'bg')).toBe(0)
   })
 
   it('does not call the embedding model again when nothing changed', async () => {

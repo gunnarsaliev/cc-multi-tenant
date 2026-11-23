@@ -95,6 +95,50 @@ describe('translating a post', () => {
     expect(bg._status).toBe('draft')
   })
 
+  it('translates the FAQ into the target locale and leaves the source alone', async () => {
+    const post = await createPost('en')
+    await payload.update({
+      collection: 'blog',
+      data: {
+        faq: [
+          { answer: lexical('Answer one'), question: 'Question one?' },
+          { answer: lexical('Answer two'), question: 'Question two?' },
+        ],
+      },
+      draft: true,
+      id: post.id,
+      locale: 'en',
+    })
+
+    await translatePost({ id: post.id, payload, targetLocale: 'bg', user: admin })
+
+    const bg = await readLocale(post.id, 'bg')
+    expect(bg.faq?.map((item) => [item.question, bodyText({ content: item.answer })])).toEqual([
+      ['[Bulgarian] Question one?', '[Bulgarian] Answer one'],
+      ['[Bulgarian] Question two?', '[Bulgarian] Answer two'],
+    ])
+    const en = await readLocale(post.id, 'en')
+    expect(en.faq?.map((item) => item.question)).toEqual(['Question one?', 'Question two?'])
+    expect(new Set([...en.faq!, ...bg.faq!].map((item) => item.id)).size).toBe(4)
+  })
+
+  it('counts a locale with only an FAQ as having content', async () => {
+    const post = await payload.create({
+      collection: 'blog',
+      data: {
+        faq: [{ answer: lexical('Only answer'), question: 'Only question?' }],
+        slug: unique('slug'),
+        tenant: tenant.id,
+        title: '',
+      } as never,
+      draft: true,
+      locale: 'bg',
+    })
+
+    const status = await getTranslationStatus({ id: post.id, payload, user: admin })
+    expect(status.localesWithContent).toContain('bg')
+  })
+
   it('uses whichever version exists when English is missing', async () => {
     const post = await createPost('bg')
 
